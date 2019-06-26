@@ -1,0 +1,16 @@
+/////////////////////////////////////////////////////////////////////////////////////
+// Copyright 2019 seabeam@yahoo.com - Licensed under the Apache License, Version 2.0
+// For more information, see LICENCE in the main folder
+/////////////////////////////////////////////////////////////////////////////////////
+`ifndef YUU_CLOCK_INTERFACE_SVI
+`define YUU_CLOCK_INTERFACE_SVI
+
+interface yuu_clock_interface();
+  logic         clk_i;
+  logic         clk_o;
+  logic         enable;
+  logic         slow;
+  logic [31:0]  divide_num;
+endinterface
+
+`endif

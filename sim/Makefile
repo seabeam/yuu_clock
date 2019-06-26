@@ -4,7 +4,7 @@ clean:
 	@echo clean down
 
 comp:
-	vcs -sverilog -full64 -q -ntb_opts uvm -debug_all ../include/clock_interface.svi ../include/clock_pkg.sv +incdir+../src/sv top.sv -timescale=1ns/1ps -l  comp.log
+	vcs -sverilog -full64 -q -ntb_opts uvm -debug_all ../../yuu_common/include/yuu_common_pkg.sv ../include/yuu_clock_interface.svi ../include/yuu_clock_pkg.sv +incdir+../../yuu_common/src/sv +incdir+../src/sv top.sv -timescale=1ns/1ps -l comp.log
 
 run:
 	simv -gui -l run.log&

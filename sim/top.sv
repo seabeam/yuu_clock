@@ -5,13 +5,14 @@
 import uvm_pkg::*;
 `include "uvm_macros.svh"
 
-import clock_pkg::*;
+import yuu_common_pkg::*;
+import yuu_clock_pkg::*;
 
 class uvc_test extends uvm_test;
-  virtual clock_interface vif;
+  virtual yuu_clock_interface vif;
   uvm_event_pool events;
 
-  clock_agent agent;
+  yuu_clock_agent agent;
 
   `uvm_component_utils(uvc_test)
 
@@ -20,16 +21,16 @@ class uvc_test extends uvm_test;
   endfunction
 
   function void build_phase(uvm_phase phase);
-    clock_agent_config cfg = new("cfg");
+    yuu_clock_config cfg = new("cfg");
 
     events = new("events");
-    uvm_config_db#(virtual clock_interface)::get(null, get_full_name(), "vif", cfg.vif);
+    uvm_config_db#(virtual yuu_clock_interface)::get(null, get_full_name(), "vif", cfg.vif);
     cfg.set_freq(72, 32);
     cfg.set_duty(0.3);
-    cfg.enable_clock_slow(1);
-    cfg.enable_clock_gating(1);
+    cfg.enable_clock_slow(True);
+    cfg.enable_clock_gating(True);
     cfg.events = events;
-    uvm_config_db#(clock_agent_config)::set(this, "agent", "cfg", cfg);
+    uvm_config_db#(yuu_clock_config)::set(this, "agent", "cfg", cfg);
     agent = new("agent", this);
   endfunction
 
@@ -62,10 +63,10 @@ class uvc_test extends uvm_test;
 endclass
 
 module top;
-  clock_interface cif();
+  yuu_clock_interface cif();
 
   initial begin
-    uvm_config_db#(virtual clock_interface)::set(null, "", "vif", cif);
+    uvm_config_db#(virtual yuu_clock_interface)::set(null, "", "vif", cif);
     run_test("uvc_test");
   end
 
