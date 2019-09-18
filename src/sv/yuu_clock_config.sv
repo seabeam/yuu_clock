@@ -19,6 +19,7 @@ class yuu_clock_config extends uvm_object;
   protected real fast_freq;
   int unsigned divide_num = 0;
   protected real m_duty = 0.5;
+  protected string m_unit = "M";
 
   `uvm_object_utils(yuu_clock_config)
 
@@ -71,6 +72,14 @@ class yuu_clock_config extends uvm_object;
     `uvm_info("enable_clock_gating", $sformatf("The clock gating function is %s", state), UVM_MEDIUM)
   endfunction
 
+  function void set_unit(string unit);
+    m_unit = unit.toupper();
+  endfunction
+
+  function string get_unit();
+    return m_unit;
+  endfunction
+
   function boolean check_valid();
     if (slow_freq <= 0 && slow_enable) begin
       `uvm_fatal("check_valid", "The slow frequency should be set up 0 when clock slow down enable")
@@ -82,6 +91,11 @@ class yuu_clock_config extends uvm_object;
     end
     if (divide_num == 0 && divider_mode) begin
       `uvm_fatal("check_valid", "The divide number should be a positive data when divider mode is enable")
+      return False;
+    end
+    if (!(m_unit inside {"", "K", "M", "G"})) begin
+      `uvm_fatal("check_valid", "The acceptable clock time unit is empty string, K, M or G")
+      return False;
     end
 
     return True;
