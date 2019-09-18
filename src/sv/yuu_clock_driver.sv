@@ -11,9 +11,11 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
   yuu_clock_config cfg;
   uvm_event_pool events;
 
-  protected real slow_freq;
-  protected real fast_freq;
-  protected bit clk_now;
+  protected real   slow_freq;
+  protected real   fast_freq;
+  protected real   duty;
+  protected string clock_unit;
+  protected bit    clk_now;
 
   `uvm_component_utils(yuu_clock_driver)
 
@@ -40,6 +42,8 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
     clk_now = vif.clk_o;
     slow_freq = cfg.get_slow_freq();
     fast_freq = cfg.get_fast_freq();
+    duty      = cfg.get_duty();
+    clock_unit= cfg.get_unit();
   endtask
 
   task main_phase(uvm_phase phase);
@@ -56,27 +60,47 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
 
   task count_time();
     if (cfg.divider_mode) begin
-      repeat (cfg.divide_num/2) @(posedge vif.clk_i);
-      vif.clk_o = ~vif.clk_o;
+      if (cfg.divide_num >= 2) begin
+        repeat (cfg.divide_num/2) @(posedge vif.clk_i);
+        vif.clk_o = ~vif.clk_o;
+      end
+      else begin
+        // TODO
+        @(vif.clk_i);
+        vif.clk_o = vif.clk_i;
+      end
     end
     else begin
       if (clk_now == 1'b1) begin
         if (vif.slow === 1'b1 && cfg.slow_enable)
-          #(real'(1000)/slow_freq * cfg.get_duty());
+          delay_unit(real'(1000)/slow_freq * duty);
         else
-          #(real'(1000)/fast_freq * cfg.get_duty());
+          delay_unit(real'(1000)/fast_freq * duty);
         vif.clk_o <= 1'b0;
         clk_now = 1'b0;
       end
       else if (clk_now == 1'b0) begin
         if (vif.slow === 1'b1 && cfg.slow_enable)
-          #(real'(1000)/slow_freq * (real'(1)-cfg.get_duty()));
+          delay_unit(real'(1000)/slow_freq * (real'(1)-duty));
         else
-          #(real'(1000)/fast_freq * (real'(1)-cfg.get_duty()));
+          delay_unit(real'(1000)/fast_freq * (real'(1)-duty));
         vif.clk_o <= 1'b1;
         clk_now = 1'b1;
       end
     end
+  endtask
+
+  task delay_unit(real delay);
+    real unit;
+
+    case(clock_unit)
+      "G":     unit = 1ps;
+      "M":     unit = 1ns;
+      "K":     unit = 1us;
+      default: unit = 1ms;
+    endcase
+    
+    #(delay*unit);
   endtask
 endclass
 
