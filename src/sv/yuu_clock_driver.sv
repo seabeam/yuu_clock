@@ -11,11 +11,11 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
   yuu_clock_config cfg;
   uvm_event_pool events;
 
-  protected real   slow_freq;
-  protected real   fast_freq;
-  protected real   duty;
-  protected string clock_unit;
-  protected bit    clk_now;
+  protected real   m_slow_freq;
+  protected real   m_fast_freq;
+  protected real   m_duty;
+  protected string m_clock_unit;
+  protected bit    m_clk_now;
 
   `uvm_component_utils(yuu_clock_driver)
 
@@ -34,20 +34,28 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
   endfunction
 
   task reset_phase(uvm_phase phase);
+    phase.raise_objection(this, "Reset start");
+    cfg.check_valid();
+    vif.divide_num <= cfg.divide_num;
+    if (cfg.multiplier_mode) begin
+      uvm_event e = events.get($sformatf("%s_measure_input_end", cfg.get_name()));
+
+      e.wait_on();
+      cfg.init_val = 1'b1;
+    end
     if (cfg.divider_mode)
       vif.clk_o <= vif.clk_i;
     else
       vif.clk_o <= cfg.init_val;
-    vif.divide_num <= cfg.divide_num;
-    clk_now = vif.clk_o;
-    slow_freq = cfg.get_slow_freq();
-    fast_freq = cfg.get_fast_freq();
-    duty      = cfg.get_duty();
-    clock_unit= cfg.get_unit();
+    m_clk_now   = cfg.init_val;
+    m_slow_freq = cfg.get_slow_freq();
+    m_fast_freq = cfg.get_fast_freq();
+    m_duty      = cfg.get_duty();
+    m_clock_unit= cfg.get_unit();
+    phase.drop_objection(this, "Reset end");
   endtask
 
   task main_phase(uvm_phase phase);
-    cfg.check_valid();
     forever begin
       if (vif.enable === 1'b0 && cfg.gating_enable) begin
         vif.clk_o <= 1'b0;
@@ -71,21 +79,21 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
       end
     end
     else begin
-      if (clk_now == 1'b1) begin
+      if (m_clk_now == 1'b1) begin
         if (vif.slow === 1'b1 && cfg.slow_enable)
-          delay_unit(real'(1000)/slow_freq * duty);
+          delay_unit(real'(1000)/m_slow_freq * m_duty);
         else
-          delay_unit(real'(1000)/fast_freq * duty);
+          delay_unit(real'(1000)/m_fast_freq * m_duty);
         vif.clk_o <= 1'b0;
-        clk_now = 1'b0;
+        m_clk_now = 1'b0;
       end
-      else if (clk_now == 1'b0) begin
+      else if (m_clk_now == 1'b0) begin
         if (vif.slow === 1'b1 && cfg.slow_enable)
-          delay_unit(real'(1000)/slow_freq * (real'(1)-duty));
+          delay_unit(real'(1000)/m_slow_freq * (real'(1)-m_duty));
         else
-          delay_unit(real'(1000)/fast_freq * (real'(1)-duty));
+          delay_unit(real'(1000)/m_fast_freq * (real'(1)-m_duty));
         vif.clk_o <= 1'b1;
-        clk_now = 1'b1;
+        m_clk_now = 1'b1;
       end
     end
   endtask
@@ -93,7 +101,7 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
   task delay_unit(real delay);
     real unit;
 
-    case(clock_unit)
+    case(m_clock_unit)
       "G":     unit = 1ps;
       "M":     unit = 1ns;
       "K":     unit = 1us;

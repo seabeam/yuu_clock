@@ -12,14 +12,16 @@ class yuu_clock_config extends uvm_object;
   boolean slow_enable  = False;
   boolean gating_enable= False;
   boolean divider_mode = False;
+  boolean multiplier_mode = False;
 
   uvm_active_passive_enum is_active = UVM_ACTIVE;
   logic init_val = 1'b0;
-  protected real slow_freq;
-  protected real fast_freq;
-  int unsigned divide_num = 0;
-  protected real m_duty = 0.5;
-  protected string m_unit = "M";
+  protected real    m_slow_freq;
+  protected real    m_fast_freq;
+  int unsigned      divide_num = 0;
+  int unsigned      multi_factor = 0;
+  protected real    m_duty = 0.5;
+  protected string  m_unit = "M";
 
   `uvm_object_utils(yuu_clock_config)
 
@@ -40,10 +42,10 @@ class yuu_clock_config extends uvm_object;
     return this.m_duty;
   endfunction
 
-  function void set_freq(int unsigned fast, int unsigned slow=0);
-    this.fast_freq = fast;
-    this.slow_freq = slow;
-    `uvm_info("set_freq", $sformatf("The clock frequency set to [fast:%0d low:%0d])", fast, slow), UVM_MEDIUM)
+  function void set_freq(real fast, real slow=0);
+    this.m_fast_freq = fast;
+    this.m_slow_freq = slow;
+    `uvm_info("set_freq", $sformatf("The clock frequency set to [fast:%0f low:%0f])", fast, slow), UVM_MEDIUM)
   endfunction
 
   function real get_freq();
@@ -51,11 +53,11 @@ class yuu_clock_config extends uvm_object;
   endfunction
 
   function real get_fast_freq();
-    return this.fast_freq;
+    return this.m_fast_freq;
   endfunction
 
   function real get_slow_freq();
-    return this.slow_freq;
+    return this.m_slow_freq;
   endfunction
 
   function void enable_clock_slow(boolean on_off);
@@ -81,16 +83,24 @@ class yuu_clock_config extends uvm_object;
   endfunction
 
   function boolean check_valid();
-    if (slow_freq <= 0 && slow_enable) begin
+    if (m_slow_freq <= 0 && slow_enable) begin
       `uvm_fatal("check_valid", "The slow frequency should be set up 0 when clock slow down enable")
       return False;
     end
-    if (slow_freq > fast_freq) begin
+    if (m_slow_freq > m_fast_freq) begin
       `uvm_fatal("check_valid", "The slow frequency should be lower than fast frequency")
+      return False;
+    end
+    if (divider_mode & multiplier_mode) begin
+      `uvm_fatal("check_valid", "It cannot enable divider mode and multiplier mode at the same time")
       return False;
     end
     if (divide_num == 0 && divider_mode) begin
       `uvm_fatal("check_valid", "The divide number should be a positive data when divider mode is enable")
+      return False;
+    end
+    if (multi_factor == 0 && multiplier_mode) begin
+      `uvm_fatal("check_valid", "The multiply factor should be a positive data when multiplier mode is enable")
       return False;
     end
     if (!(m_unit inside {"", "K", "M", "G"})) begin
