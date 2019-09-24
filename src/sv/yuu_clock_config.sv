@@ -18,8 +18,8 @@ class yuu_clock_config extends uvm_object;
   logic init_val = 1'b0;
   protected real    m_slow_freq;
   protected real    m_fast_freq;
-  int unsigned      divide_num = 0;
-  int unsigned      multi_factor = 0;
+  bit [7:0]         divide_num = 0;
+  bit [7:0]         multi_factor = 0;
   protected real    m_duty = 0.5;
   protected string  m_unit = "M";
 

@@ -36,11 +36,13 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
   task reset_phase(uvm_phase phase);
     phase.raise_objection(this, "Reset start");
     cfg.check_valid();
-    vif.divide_num <= cfg.divide_num;
-    if (cfg.multiplier_mode || cfg.divider_mode) begin
+    if (cfg.divider_mode || cfg.multiplier_mode) begin
       cfg.init_val = 1'b1;
     end
     vif.clk_o <= cfg.init_val;
+    vif.divide_num  <= 'h0;
+    vif.multi_factor<= 'h0;
+    vif.ready       <= 1'b0;
     phase.drop_objection(this, "Reset end");
   endtask
 
@@ -50,6 +52,9 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
     m_fast_freq = cfg.get_fast_freq();
     m_duty      = cfg.get_duty();
     m_clock_unit= cfg.get_unit();
+    vif.divide_num  <= cfg.divide_num;
+    vif.multi_factor<= cfg.multi_factor;
+    vif.ready       <= 1'b1;
     forever begin
       if (vif.enable === 1'b0 && cfg.gating_enable) begin
         vif.clk_o <= 1'b0;

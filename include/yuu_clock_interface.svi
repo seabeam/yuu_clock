@@ -6,11 +6,13 @@
 `define YUU_CLOCK_INTERFACE_SVI
 
 interface yuu_clock_interface();
-  logic         clk_i;
-  logic         clk_o;
-  logic         enable;
-  logic         slow;
-  logic [31:0]  divide_num;
+  logic       clk_i;
+  logic       clk_o;
+  logic       enable;
+  logic       slow;
+  logic       ready;
+  logic [7:0] divide_num;
+  logic [7:0] multi_factor;
 endinterface
 
 `endif
