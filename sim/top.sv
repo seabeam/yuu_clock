@@ -12,11 +12,13 @@ class uvc_test extends uvm_test;
   virtual yuu_clock_interface clk_vif0;
   virtual yuu_clock_interface clk_vif1;
   virtual yuu_clock_interface clk_vif2;
+  virtual yuu_clock_interface clk_vif3;
   uvm_event_pool events;
 
   yuu_clock_agent agent0;
   yuu_clock_agent agent1;
   yuu_clock_agent agent2;
+  yuu_clock_agent agent3;
 
   `uvm_component_utils(uvc_test)
 
@@ -28,6 +30,7 @@ class uvc_test extends uvm_test;
     yuu_clock_config cfg0 = new("cfg0");
     yuu_clock_config cfg1 = new("cfg1");
     yuu_clock_config cfg2 = new("cfg2");
+    yuu_clock_config cfg3 = new("cfg3");
 
     events = new("events");
     uvm_config_db#(virtual yuu_clock_interface)::get(null, get_full_name(), "vif0", cfg0.vif);
@@ -63,13 +66,23 @@ class uvc_test extends uvm_test;
     cfg2.multi_factor = 3;
     uvm_config_db#(yuu_clock_config)::set(this, "agent2", "cfg", cfg2);
     agent2 = new("agent2", this);
+
+    uvm_config_db#(virtual yuu_clock_interface)::get(null, get_full_name(), "vif3", cfg3.vif);
+    clk_vif3 = cfg3.vif;
+    cfg3.divider_mode = True;
+    cfg3.enable_clock_slow(False);
+    cfg3.enable_clock_gating(False);
+    cfg3.events = events;
+    cfg3.divide_num = 2;
+    uvm_config_db#(yuu_clock_config)::set(this, "agent3", "cfg", cfg3);
+    agent3 = new("agent3", this);
   endfunction
 
   task main_phase(uvm_phase phase);
     fork
       begin
         phase.raise_objection(this);
-        repeat(100) @(posedge clk_vif2.clk_o);
+        repeat(100) @(posedge clk_vif3.clk_o);
         phase.drop_objection(this);
       end
       event_process();
@@ -97,11 +110,13 @@ module top;
   yuu_clock_interface cif0();
   yuu_clock_interface cif1();
   yuu_clock_interface cif2();
+  yuu_clock_interface cif3();
 
   initial begin
     uvm_config_db#(virtual yuu_clock_interface)::set(null, "", "vif0", cif0);
     uvm_config_db#(virtual yuu_clock_interface)::set(null, "", "vif1", cif1);
     uvm_config_db#(virtual yuu_clock_interface)::set(null, "", "vif2", cif2);
+    uvm_config_db#(virtual yuu_clock_interface)::set(null, "", "vif3", cif3);
     run_test("uvc_test");
   end
 
@@ -114,6 +129,7 @@ module top;
   end
 
   assign cif2.clk_i = clk_ext;
+  assign cif3.clk_i = clk_ext;
 
   initial begin
     clk_ext = 0;

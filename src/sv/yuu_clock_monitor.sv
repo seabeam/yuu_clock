@@ -28,8 +28,17 @@ class yuu_clock_monitor extends uvm_monitor;
   endfunction
 
   task reset_phase(uvm_phase phase);
+    real duty;
+    real freq;
+    string unit;
+
     phase.raise_objection(this, "Reset start");
-    measure_input();
+    if (cfg.divider_mode || cfg.multiplier_mode) begin
+      measure_input(duty, freq, unit);
+      cfg.set_freq(freq);
+      cfg.set_unit(unit);
+      cfg.set_duty(duty);
+    end
     phase.drop_objection(this, "Reset end");
   endtask
 
@@ -78,74 +87,144 @@ class yuu_clock_monitor extends uvm_monitor;
   //    |       |          |
   //-----       ------------
   //   t0      t1         t2
-  task measure_input();
-    uvm_event e = events.get($sformatf("%s_measure_input_end", cfg.get_name()));
+  task measure_input(output real duty, output real freq, output string unit);
     real t0, t1, t2;
-    string time_unit = get_sim_time_unit();
-    real T;
-    real ofm;
 
-    if (cfg.multiplier_mode) begin
-      wait(vif.clk_i === 1'b1);
-      t0 = $realtime();
-      $display(t0);
-      wait(vif.clk_i === 1'b0);
-      t1 = $realtime();
-      $display(t1);
-      wait(vif.clk_i === 1'b1);
-      t2 = $realtime();
-      $display(t2);
+    wait(vif.clk_i === 1'b1);
+    t0 = $realtime();
+    $display(t0);
+    wait(vif.clk_i === 1'b0);
+    t1 = $realtime();
+    $display(t1);
+    wait(vif.clk_i === 1'b1);
+    t2 = $realtime();
+    $display(t2);
       
-      T = t2-t0;
-      cfg.set_duty((t1-t0)/T);
-      ofm = $log10(T);
-      if (ofm < 3) begin
-        cfg.set_freq(real'(1000)/T*real'(cfg.multi_factor));
-        case(time_unit)
-          "s":  cfg.set_unit("");
-          "ms": cfg.set_unit("");
-          "us": cfg.set_unit("K");
-          "ns": cfg.set_unit("M");
-          "ps": cfg.set_unit("G");
-          "fs": cfg.set_unit("G");
-        endcase
-      end
-      else if (ofm >= 3 && ofm < 6) begin
-        cfg.set_freq(real'(1000)/(T/real'(1000))*real'(cfg.multi_factor));
-        case(time_unit)
-          "s":  cfg.set_unit("");
-          "ms": cfg.set_unit("");
-          "us": cfg.set_unit("");
-          "ns": cfg.set_unit("K");
-          "ps": cfg.set_unit("M");
-          "fs": cfg.set_unit("G");
-        endcase
-      end
-      else if (ofm >= 6 && ofm < 9) begin
-        cfg.set_freq(real'(1000)/(T/real'(1000000))*real'(cfg.multi_factor));
-        case(time_unit)
-          "s":  cfg.set_unit("");
-          "ms": cfg.set_unit("");
-          "us": cfg.set_unit("");
-          "ns": cfg.set_unit("");
-          "ps": cfg.set_unit("K");
-          "fs": cfg.set_unit("M");
-        endcase
-      end
-      else begin
-        cfg.set_freq(real'(1000)/(T/real'(1000000000))*real'(cfg.multi_factor));
-        case(time_unit)
-          "s":  cfg.set_unit("");
-          "ms": cfg.set_unit("");
-          "us": cfg.set_unit("");
-          "ns": cfg.set_unit("");
-          "ps": cfg.set_unit("");
-          "fs": cfg.set_unit("K");
-        endcase
-      end
-      e.trigger();
+    if (cfg.multiplier_mode) begin
+      reconfig_mult(t0, t1, t2, duty, freq, unit);
+    end
+    else begin
+      reconfig_div(t0, t1, t2, duty, freq, unit);
     end
   endtask
+
+  function void reconfig_mult(input  real t0,
+                              input  real t1,
+                              input  real t2,
+                              output real duty, 
+                              output real freq, 
+                              output string unit);
+    real T;
+    real ofm;
+    string time_unit = get_sim_time_unit();
+    
+    T = t2-t0;
+    duty = (t1-t0)/T;
+    ofm = $log10(T);
+    if (ofm < 3) begin
+      freq  = real'(1000)/T*real'(cfg.multi_factor);
+      case(time_unit)
+        "s":  unit = "";
+        "ms": unit = "";
+        "us": unit = "K";
+        "ns": unit = "M";
+        "ps": unit = "G";
+        "fs": unit = "G";
+      endcase
+    end
+    else if (ofm >= 3 && ofm < 6) begin
+      freq = real'(1000)/(T/real'(1000))*real'(cfg.multi_factor);
+      case(time_unit)
+        "s":  unit = "";
+        "ms": unit = "";
+        "us": unit = "";
+        "ns": unit = "K";
+        "ps": unit = "M";
+        "fs": unit = "G";
+      endcase
+    end
+    else if (ofm >= 6 && ofm < 9) begin
+      freq = real'(1000)/(T/real'(1000000))*real'(cfg.multi_factor);
+      case(time_unit)
+        "s":  unit = "";
+        "ms": unit = "";
+        "us": unit = "";
+        "ns": unit = "";
+        "ps": unit = "K";
+        "fs": unit = "M";
+      endcase
+    end
+    else begin
+      freq = real'(1000)/(T/real'(1000000000))*real'(cfg.multi_factor);
+      case(time_unit)
+        "s":  unit = "";
+        "ms": unit = "";
+        "us": unit = "";
+        "ns": unit = "";
+        "ps": unit = "";
+        "fs": unit = "K";
+      endcase
+    end
+  endfunction
+
+  function void reconfig_div(input  real t0,
+                             input  real t1,
+                             input  real t2,
+                             output real duty, 
+                             output real freq, 
+                             output string unit);
+    real T;
+    real ofm;
+    string time_unit = get_sim_time_unit();
+    
+    T = t2-t0;
+    duty = (t1-t0)/T;
+    ofm = $log10(T);
+    if (ofm < 3) begin
+      freq  = real'(1000)/T/real'(cfg.divide_num);
+      case(time_unit)
+        "s":  unit = "";
+        "ms": unit = "";
+        "us": unit = "K";
+        "ns": unit = "M";
+        "ps": unit = "G";
+        "fs": unit = "G";
+      endcase
+    end
+    else if (ofm >= 3 && ofm < 6) begin
+      freq = real'(1000)/(T/real'(1000))/real'(cfg.divide_num);
+      case(time_unit)
+        "s":  unit = "";
+        "ms": unit = "";
+        "us": unit = "";
+        "ns": unit = "K";
+        "ps": unit = "M";
+        "fs": unit = "G";
+      endcase
+    end
+    else if (ofm >= 6 && ofm < 9) begin
+      freq = real'(1000)/(T/real'(1000000))/real'(cfg.divide_num);
+      case(time_unit)
+        "s":  unit = "";
+        "ms": unit = "";
+        "us": unit = "";
+        "ns": unit = "";
+        "ps": unit = "K";
+        "fs": unit = "M";
+      endcase
+    end
+    else begin
+      freq = real'(1000)/(T/real'(1000000000))/real'(cfg.divide_num);
+      case(time_unit)
+        "s":  unit = "";
+        "ms": unit = "";
+        "us": unit = "";
+        "ns": unit = "";
+        "ps": unit = "";
+        "fs": unit = "K";
+      endcase
+    end
+  endfunction
 
   function string get_sim_time_unit();
     int test_time;

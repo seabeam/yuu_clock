@@ -37,25 +37,19 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
     phase.raise_objection(this, "Reset start");
     cfg.check_valid();
     vif.divide_num <= cfg.divide_num;
-    if (cfg.multiplier_mode) begin
-      uvm_event e = events.get($sformatf("%s_measure_input_end", cfg.get_name()));
-
-      e.wait_on();
+    if (cfg.multiplier_mode || cfg.divider_mode) begin
       cfg.init_val = 1'b1;
     end
-    if (cfg.divider_mode)
-      vif.clk_o <= vif.clk_i;
-    else
-      vif.clk_o <= cfg.init_val;
+    vif.clk_o <= cfg.init_val;
+    phase.drop_objection(this, "Reset end");
+  endtask
+
+  task main_phase(uvm_phase phase);
     m_clk_now   = cfg.init_val;
     m_slow_freq = cfg.get_slow_freq();
     m_fast_freq = cfg.get_fast_freq();
     m_duty      = cfg.get_duty();
     m_clock_unit= cfg.get_unit();
-    phase.drop_objection(this, "Reset end");
-  endtask
-
-  task main_phase(uvm_phase phase);
     forever begin
       if (vif.enable === 1'b0 && cfg.gating_enable) begin
         vif.clk_o <= 1'b0;
@@ -67,34 +61,21 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
   endtask
 
   task count_time();
-    if (cfg.divider_mode) begin
-      if (cfg.divide_num >= 2) begin
-        repeat (cfg.divide_num/2) @(posedge vif.clk_i);
-        vif.clk_o = ~vif.clk_o;
-      end
-      else begin
-        // TODO
-        @(vif.clk_i);
-        vif.clk_o = vif.clk_i;
-      end
+    if (m_clk_now == 1'b1) begin
+      if (vif.slow === 1'b1 && cfg.slow_enable)
+        delay_unit(real'(1000)/m_slow_freq * m_duty);
+      else
+        delay_unit(real'(1000)/m_fast_freq * m_duty);
+      vif.clk_o <= 1'b0;
+      m_clk_now = 1'b0;
     end
-    else begin
-      if (m_clk_now == 1'b1) begin
-        if (vif.slow === 1'b1 && cfg.slow_enable)
-          delay_unit(real'(1000)/m_slow_freq * m_duty);
-        else
-          delay_unit(real'(1000)/m_fast_freq * m_duty);
-        vif.clk_o <= 1'b0;
-        m_clk_now = 1'b0;
-      end
-      else if (m_clk_now == 1'b0) begin
-        if (vif.slow === 1'b1 && cfg.slow_enable)
-          delay_unit(real'(1000)/m_slow_freq * (real'(1)-m_duty));
-        else
-          delay_unit(real'(1000)/m_fast_freq * (real'(1)-m_duty));
-        vif.clk_o <= 1'b1;
-        m_clk_now = 1'b1;
-      end
+    else if (m_clk_now == 1'b0) begin
+      if (vif.slow === 1'b1 && cfg.slow_enable)
+        delay_unit(real'(1000)/m_slow_freq * (real'(1)-m_duty));
+      else
+        delay_unit(real'(1000)/m_fast_freq * (real'(1)-m_duty));
+      vif.clk_o <= 1'b1;
+      m_clk_now = 1'b1;
     end
   endtask
 
