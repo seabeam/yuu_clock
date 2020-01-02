@@ -14,6 +14,7 @@ package yuu_clock_pkg;
   import yuu_common_pkg::*;
 
   `include "yuu_clock_config.sv"
+  `include "yuu_clock_item.sv"
   `include "yuu_clock_driver.sv"
   `include "yuu_clock_monitor.sv"
   `include "yuu_clock_agent.sv"

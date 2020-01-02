@@ -78,7 +78,7 @@ class uvc_test extends uvm_test;
     agent3 = new("agent3", this);
   endfunction
 
-  task main_phase(uvm_phase phase);
+  task run_phase(uvm_phase phase);
     fork
       begin
         phase.raise_objection(this);
@@ -134,6 +134,10 @@ module top;
   initial begin
     clk_ext = 0;
 
+    cif0.measure_enable = 1;
+    cif1.measure_enable = 1;
+    cif2.measure_enable = 1;
+    cif3.measure_enable = 1;
     cif0.enable = 1'b0;
     cif0.slow   = 1'b1;
     #5ns;

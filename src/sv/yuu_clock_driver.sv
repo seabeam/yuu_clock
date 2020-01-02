@@ -33,20 +33,9 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
     events = cfg.events;
   endfunction
 
-  task reset_phase(uvm_phase phase);
-    phase.raise_objection(this, "Reset start");
-    cfg.check_valid();
-    if (cfg.divider_mode || cfg.multiplier_mode) begin
-      cfg.init_val = 1'b1;
-    end
-    vif.clk_o <= cfg.init_val;
-    vif.divide_num  <= 'h0;
-    vif.multi_factor<= 'h0;
-    vif.ready       <= 1'b0;
-    phase.drop_objection(this, "Reset end");
-  endtask
+  task run_phase(uvm_phase phase);
+    init_component();
 
-  task main_phase(uvm_phase phase);
     m_clk_now   = cfg.init_val;
     m_slow_freq = cfg.get_slow_freq();
     m_fast_freq = cfg.get_fast_freq();
@@ -63,6 +52,21 @@ class yuu_clock_driver extends uvm_driver#(uvm_sequence_item);
       else
         count_time();
     end
+  endtask
+
+
+  task init_component();
+    uvm_event init_done = events.get($sformatf("%s_init_done", cfg.get_name()));
+
+    init_done.wait_on();
+    cfg.check_valid();
+    if (cfg.divider_mode || cfg.multiplier_mode) begin
+      cfg.init_val = 1'b1;
+    end
+    vif.clk_o <= cfg.init_val;
+    vif.divide_num  <= 'h0;
+    vif.multi_factor<= 'h0;
+    vif.ready       <= 1'b0;
   endtask
 
   task count_time();

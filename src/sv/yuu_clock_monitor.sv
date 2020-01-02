@@ -11,6 +11,8 @@ class yuu_clock_monitor extends uvm_monitor;
   yuu_clock_config cfg;
   uvm_event_pool events;
 
+  uvm_analysis_port #(yuu_clock_item) out_monitor_ap;
+
   `uvm_component_utils(yuu_clock_monitor)
 
   function new(string name, uvm_component parent);
@@ -18,8 +20,7 @@ class yuu_clock_monitor extends uvm_monitor;
   endfunction
 
   function void build_phase(uvm_phase phase);
-    if (cfg == null)
-      `uvm_fatal("build_phase", "Check the yuu_clock agent configure setting")
+    out_monitor_ap = new("out_monitor_ap", this);
   endfunction
 
   function void connect_phase(uvm_phase phase);
@@ -27,26 +28,47 @@ class yuu_clock_monitor extends uvm_monitor;
     events = cfg.events;
   endfunction
 
-  task reset_phase(uvm_phase phase);
+  task run_phase(uvm_phase phase);
+    init_component();
+
+    fork
+      monitor_gating();
+      monitor_slow();
+      forever begin
+        fork
+          wait(vif.measure_enable === 1'b0);
+          begin
+            real    duty;
+            real    freq;
+            string  unit;
+            yuu_clock_item monitor_item = yuu_clock_item::type_id::create("monitor_item");
+
+            measure_input(duty, freq, unit);
+            monitor_item.duty = duty;
+            monitor_item.freq = freq;
+            monitor_item.unit = unit;
+            out_monitor_ap.write(monitor_item);
+          end
+        join_any
+        disable fork;
+      end
+    join
+  endtask
+
+
+  task init_component();
     real duty;
     real freq;
     string unit;
+    uvm_event init_done = events.get($sformatf("%s_init_done", cfg.get_name()));
 
-    phase.raise_objection(this, "Reset start");
     if (cfg.divider_mode || cfg.multiplier_mode) begin
       measure_input(duty, freq, unit);
       cfg.set_freq(freq);
       cfg.set_unit(unit);
       cfg.set_duty(duty);
     end
-    phase.drop_objection(this, "Reset end");
-  endtask
-
-  task main_phase(uvm_phase phase);
-    fork
-      monitor_gating();
-      monitor_slow();
-    join
+    init_done.trigger();
   endtask
 
   task monitor_gating();
@@ -92,13 +114,13 @@ class yuu_clock_monitor extends uvm_monitor;
 
     wait(vif.clk_i === 1'b1);
     t0 = $realtime();
-    $display(t0);
+    //$display(t0);
     wait(vif.clk_i === 1'b0);
     t1 = $realtime();
-    $display(t1);
+    //$display(t1);
     wait(vif.clk_i === 1'b1);
     t2 = $realtime();
-    $display(t2);
+    //$display(t2);
       
     if (cfg.multiplier_mode) begin
       reconfig_mult(t0, t1, t2, duty, freq, unit);

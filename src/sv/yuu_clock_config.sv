@@ -9,21 +9,35 @@ class yuu_clock_config extends uvm_object;
   virtual yuu_clock_interface vif;
   uvm_event_pool events;
 
+  logic init_val = 1'b0;
+  protected real    m_slow_freq;
+  protected real    m_fast_freq;
+  protected real    m_duty = 0.5;
+  bit [7:0]         divide_num = 1;
+  bit [7:0]         multi_factor = 1;
+  protected string  m_unit = "M";
+
   boolean slow_enable  = False;
   boolean gating_enable= False;
   boolean divider_mode = False;
   boolean multiplier_mode = False;
 
   uvm_active_passive_enum is_active = UVM_ACTIVE;
-  logic init_val = 1'b0;
-  protected real    m_slow_freq;
-  protected real    m_fast_freq;
-  bit [7:0]         divide_num = 0;
-  bit [7:0]         multi_factor = 0;
-  protected real    m_duty = 0.5;
-  protected string  m_unit = "M";
 
-  `uvm_object_utils(yuu_clock_config)
+  `uvm_object_utils_begin(yuu_clock_config)
+    `uvm_field_int    (                         init_val,       UVM_ALL_ON)
+    `uvm_field_real   (                         m_slow_freq,    UVM_ALL_ON)
+    `uvm_field_real   (                         m_fast_freq,    UVM_ALL_ON)
+    `uvm_field_real   (                         m_duty,         UVM_ALL_ON)
+    `uvm_field_string (                         m_unit,         UVM_ALL_ON)
+    `uvm_field_int    (                         divide_num,     UVM_ALL_ON)
+    `uvm_field_int    (                         multi_factor,   UVM_ALL_ON)
+    `uvm_field_enum   (boolean,                 slow_enable,    UVM_ALL_ON)
+    `uvm_field_enum   (boolean,                 gating_enable,  UVM_ALL_ON)
+    `uvm_field_enum   (boolean,                 divider_mode,   UVM_ALL_ON)
+    `uvm_field_enum   (boolean,                 multiplier_mode,UVM_ALL_ON)
+    `uvm_field_enum   (uvm_active_passive_enum, is_active,      UVM_ALL_ON)
+  `uvm_object_utils_end
 
   function new(string name="yuu_clock_config");
     super.new(name);
