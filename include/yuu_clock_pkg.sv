@@ -5,6 +5,7 @@
 `ifndef YUU_CLOCK_PKG_SV
 `define YUU_CLOCK_PKG_SV
 
+`include "yuu_clock_defines.svh"
 `include "yuu_clock_interface.svi"
 
 package yuu_clock_pkg;
