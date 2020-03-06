@@ -7,3 +7,6 @@ UVM clock agent
 3. Clock gating
 4. Clock divider mode
 5. Clock multiplier mode
+
+## Note
+[yuu_common](https://github.com/seabeam/yuu_common "YUU UVM utilities package") package is needed
