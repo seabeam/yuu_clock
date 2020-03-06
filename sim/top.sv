@@ -49,6 +49,7 @@ class uvc_test extends uvm_test;
     clk_vif1 = cfg1.vif;
     cfg1.set_freq(800);
     cfg1.set_duty(0.5);
+    cfg1.set_phase(4000);
     cfg1.set_unit("K");
     cfg1.init_val = 1'b1;
     cfg1.enable_clock_slow(False);
