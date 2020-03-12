@@ -131,6 +131,10 @@ function boolean yuu_clock_config::check_valid();
     `uvm_fatal("check_valid", "The slow frequency should be lower than fast frequency")
     return False;
   end
+  if (m_fast_freq <= 0) begin
+    `uvm_fatal("check_valid", "The fast frequency should be higher then 0")
+    return False;
+  end
   if (divider_mode & multiplier_mode) begin
     `uvm_fatal("check_valid", "It cannot enable divider mode and multiplier mode at the same time")
     return False;
